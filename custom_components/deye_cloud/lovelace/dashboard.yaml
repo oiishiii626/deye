@@ -1,0 +1,262 @@
+title: Deye Cloud
+views:
+  # View 1: Power Flow Card - Real-time energy flow visualization
+  - title: Power Flow
+    path: power-flow
+    icon: mdi:flash
+    cards:
+      - type: power-flow-card
+        title: Energy Flow
+        entities:
+          solar: sensor.deye_inverter_pv_power_total
+          battery: sensor.deye_inverter_battery_power
+          grid: sensor.deye_inverter_grid_import_power
+          load: sensor.deye_inverter_load_power
+        unit_of_measurement: W
+        min_flow_rate: 0.5
+        max_flow_rate: 6
+
+      - type: entities
+        title: Instantaneous Power
+        entities:
+          - entity: sensor.deye_inverter_pv_power_total
+            name: PV Power
+            icon: mdi:solar-panel
+          - entity: sensor.deye_inverter_battery_power
+            name: Battery Power
+            icon: mdi:battery
+          - entity: sensor.deye_inverter_grid_import_power
+            name: Grid Import
+            icon: mdi:transmission-tower-import
+          - entity: sensor.deye_inverter_grid_export_power
+            name: Grid Export
+            icon: mdi:transmission-tower-export
+          - entity: sensor.deye_inverter_load_power
+            name: Load Power
+            icon: mdi:home-lightning-bolt
+
+      - type: gauge
+        title: Battery SOC
+        entity: sensor.deye_inverter_battery_soc
+        min: 0
+        max: 100
+        severity:
+          green: 60
+          yellow: 20
+          red: 0
+
+  # View 2: Summary Statistics - Production/consumption overview
+  - title: Summary
+    path: summary
+    icon: mdi:chart-bar
+    cards:
+      - type: statistics-graph
+        title: Daily Production
+        entities:
+          - sensor.deye_inverter_pv_daily_yield
+        stat_types:
+          - max
+        period:
+          calendar:
+            period: day
+
+      - type: entities
+        title: Production Summary
+        entities:
+          - entity: sensor.deye_inverter_pv_daily_yield
+            name: Daily Production
+            icon: mdi:solar-power
+          - entity: sensor.deye_inverter_pv_total_yield
+            name: Total Production
+            icon: mdi:counter
+
+      - type: entities
+        title: Consumption Summary
+        entities:
+          - entity: sensor.deye_inverter_load_daily_consumption
+            name: Daily Consumption
+            icon: mdi:home-lightning-bolt
+          - entity: sensor.deye_inverter_load_total_consumption
+            name: Total Consumption
+            icon: mdi:counter
+
+      - type: entities
+        title: Grid Exchange
+        entities:
+          - entity: sensor.deye_inverter_grid_daily_import
+            name: Daily Grid Import
+            icon: mdi:transmission-tower-import
+          - entity: sensor.deye_inverter_grid_daily_export
+            name: Daily Grid Export
+            icon: mdi:transmission-tower-export
+          - entity: sensor.deye_inverter_grid_total_import
+            name: Total Grid Import
+          - entity: sensor.deye_inverter_grid_total_export
+            name: Total Grid Export
+
+      - type: entities
+        title: Self-Consumption & Self-Sufficiency
+        entities:
+          - entity: sensor.deye_inverter_self_consumption_ratio
+            name: Self-Consumption Ratio
+            icon: mdi:percent
+          - entity: sensor.deye_inverter_self_sufficiency_ratio
+            name: Self-Sufficiency Ratio
+            icon: mdi:percent
+
+  # View 3: Historical Charts - Power profile and trends
+  - title: Charts
+    path: charts
+    icon: mdi:chart-line
+    cards:
+      - type: history-graph
+        title: 24h Power Profile
+        hours_to_show: 24
+        entities:
+          - entity: sensor.deye_inverter_pv_power_total
+            name: PV Power
+          - entity: sensor.deye_inverter_battery_power
+            name: Battery Power
+          - entity: sensor.deye_inverter_grid_import_power
+            name: Grid Import
+          - entity: sensor.deye_inverter_load_power
+            name: Load Consumption
+          - entity: sensor.deye_inverter_battery_soc
+            name: Battery SOC
+
+      - type: statistics-graph
+        title: 7-Day Generation
+        entities:
+          - sensor.deye_inverter_pv_daily_yield
+        stat_types:
+          - max
+        period:
+          calendar:
+            period: day
+        days_to_show: 7
+
+      - type: statistics-graph
+        title: 7-Day Consumption
+        entities:
+          - sensor.deye_inverter_load_daily_consumption
+        stat_types:
+          - max
+        period:
+          calendar:
+            period: day
+        days_to_show: 7
+
+      - type: statistics-graph
+        title: Daily Solar vs Consumption
+        entities:
+          - sensor.deye_inverter_pv_daily_yield
+          - sensor.deye_inverter_load_daily_consumption
+          - sensor.deye_inverter_grid_daily_import
+          - sensor.deye_inverter_grid_daily_export
+        chart_type: bar
+        stat_types:
+          - max
+        period:
+          calendar:
+            period: day
+
+  # View 4: Settings / Controls - All writable parameters
+  - title: Settings
+    path: settings
+    icon: mdi:cog
+    cards:
+      - type: entities
+        title: Work Mode & Energy Pattern
+        entities:
+          - entity: select.deye_inverter_work_mode
+            name: Work Mode
+          - entity: select.deye_inverter_energy_pattern
+            name: Energy Pattern
+
+      - type: entities
+        title: Battery Settings
+        entities:
+          - entity: number.deye_inverter_battery_soc_min
+            name: Min SOC
+          - entity: number.deye_inverter_battery_soc_max
+            name: Max SOC
+          - entity: number.deye_inverter_battery_charge_current
+            name: Charge Current
+          - entity: number.deye_inverter_battery_discharge_current
+            name: Discharge Current
+
+      - type: entities
+        title: Grid Settings
+        entities:
+          - entity: number.deye_inverter_grid_export_limit
+            name: Grid Export Limit
+          - entity: switch.deye_inverter_solar_sell
+            name: Solar Sell
+          - entity: switch.deye_inverter_peak_shaving
+            name: Peak Shaving
+          - entity: number.deye_inverter_peak_shaving_threshold
+            name: Peak Shaving Threshold
+
+      - type: entities
+        title: Time-of-Use Schedule
+        entities:
+          - entity: switch.deye_inverter_tou_enabled
+            name: TOU Enabled
+          - entity: time.deye_inverter_tou_slot_1_start
+            name: TOU Slot 1 Start
+          - entity: time.deye_inverter_tou_slot_1_end
+            name: TOU Slot 1 End
+          - entity: time.deye_inverter_tou_slot_2_start
+            name: TOU Slot 2 Start
+          - entity: time.deye_inverter_tou_slot_2_end
+            name: TOU Slot 2 End
+          - entity: time.deye_inverter_tou_slot_3_start
+            name: TOU Slot 3 Start
+          - entity: time.deye_inverter_tou_slot_3_end
+            name: TOU Slot 3 End
+
+      - type: entities
+        title: Smart Load Control
+        entities:
+          - entity: switch.deye_inverter_smart_load_1
+            name: Smart Load 1
+          - entity: switch.deye_inverter_smart_load_2
+            name: Smart Load 2
+
+  # View 5: Diagnostics - Status, metadata, and troubleshooting
+  - title: Diagnostics
+    path: diagnostics
+    icon: mdi:bug
+    cards:
+      - type: entities
+        title: Inverter Status
+        entities:
+          - entity: binary_sensor.deye_inverter_online
+            name: Online Status
+          - entity: sensor.deye_inverter_last_update
+            name: Last Update
+            icon: mdi:clock-outline
+
+      - type: markdown
+        title: Device Information
+        content: |
+          **Firmware Version:** {{ state_attr('binary_sensor.deye_inverter_online', 'firmware_version') }}
+          **Model:** {{ state_attr('binary_sensor.deye_inverter_online', 'model_name') }}
+          **Serial Number:** {{ state_attr('binary_sensor.deye_inverter_online', 'serial_number') }}
+          **Rated Power:** {{ state_attr('binary_sensor.deye_inverter_online', 'rated_power_w') }} W
+
+      - type: entities
+        title: Connection Diagnostics
+        entities:
+          - entity: sensor.deye_inverter_grid_frequency
+            name: Grid Frequency
+            icon: mdi:sine-wave
+
+      - type: markdown
+        title: Diagnostics Download
+        content: |
+          Download full integration diagnostics for troubleshooting:
+
+          [Download Diagnostics](/api/diagnostics/config_entry/{{ config_entry_id }})
+
+          This includes configuration (redacted), entity states, last API response, and error counts.

@@ -1,0 +1,217 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Deye Cloud Credentials",
+        "description": "Enter your Deye Cloud developer API credentials.",
+        "data": {
+          "app_id": "App ID",
+          "app_secret": "App Secret",
+          "scan_interval": "Polling interval (seconds)"
+        },
+        "data_description": {
+          "app_id": "Your Deye Cloud developer App ID",
+          "app_secret": "Your Deye Cloud developer App Secret",
+          "scan_interval": "How often to poll for new data (30-600 seconds)"
+        }
+      },
+      "select_devices": {
+        "title": "Select Devices",
+        "description": "Select the inverters and stations you want to monitor.",
+        "data": {
+          "inverters": "Inverters",
+          "stations": "Stations"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid credentials. Please check your App ID and App Secret.",
+      "cannot_connect": "Unable to connect to Deye Cloud API. Please check your network connection.",
+      "no_devices": "No stations or inverters found for this account.",
+      "already_configured": "This account is already configured.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This account is already configured.",
+      "no_devices": "No devices found for this account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Deye Cloud Options",
+        "description": "Configure integration settings.",
+        "data": {
+          "scan_interval": "Polling interval (seconds)",
+          "panel_tilt": "Panel tilt angle (degrees)",
+          "panel_azimuth": "Panel azimuth angle (degrees)",
+          "system_efficiency": "System efficiency factor"
+        },
+        "data_description": {
+          "scan_interval": "How often to poll for new data (30-3600 seconds)",
+          "panel_tilt": "Solar panel tilt from horizontal (0-90°, default 30°)",
+          "panel_azimuth": "Solar panel compass direction (0-360°, 180° = south)",
+          "system_efficiency": "Overall system efficiency (0.5-0.95, default 0.75)"
+        }
+      },
+      "menu": {
+        "title": "Deye Cloud Options",
+        "description": "Select an area to configure.",
+        "menu_options": {
+          "devices": "Manage devices",
+          "credentials": "Update credentials",
+          "tariff": "Tariff configuration",
+          "finish": "Save and close"
+        }
+      },
+      "devices": {
+        "title": "Manage Devices",
+        "description": "Add or remove monitored inverters.",
+        "data": {
+          "inverters": "Inverters to monitor"
+        }
+      },
+      "credentials": {
+        "title": "Update Credentials",
+        "description": "Update your Deye Cloud API credentials.",
+        "data": {
+          "app_id": "App ID",
+          "app_secret": "App Secret"
+        }
+      },
+      "tariff": {
+        "title": "Tariff Configuration",
+        "description": "Configure electricity tariff periods for automated charging.",
+        "data": {
+          "tariff_periods": "Tariff periods"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid credentials. Please check your App ID and App Secret.",
+      "cannot_connect": "Unable to connect to Deye Cloud API.",
+      "no_devices": "Please select at least one inverter.",
+      "invalid_efficiency": "System efficiency must be between 0.5 and 0.95.",
+      "too_many_periods": "Maximum of 10 tariff periods allowed.",
+      "invalid_period": "Invalid tariff period. End time must be after start time in HH:MM format.",
+      "overlapping_periods": "Tariff periods must not overlap.",
+      "unknown": "An unexpected error occurred."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pv_power": {
+        "name": "PV Power"
+      },
+      "pv_daily_yield": {
+        "name": "PV Daily Yield"
+      },
+      "pv_total_yield": {
+        "name": "PV Total Yield"
+      },
+      "battery_soc": {
+        "name": "Battery State of Charge"
+      },
+      "battery_power": {
+        "name": "Battery Power"
+      },
+      "battery_voltage": {
+        "name": "Battery Voltage"
+      },
+      "battery_current": {
+        "name": "Battery Current"
+      },
+      "battery_temperature": {
+        "name": "Battery Temperature"
+      },
+      "grid_import_power": {
+        "name": "Grid Import Power"
+      },
+      "grid_export_power": {
+        "name": "Grid Export Power"
+      },
+      "grid_daily_import": {
+        "name": "Grid Daily Import"
+      },
+      "grid_daily_export": {
+        "name": "Grid Daily Export"
+      },
+      "grid_frequency": {
+        "name": "Grid Frequency"
+      },
+      "load_power": {
+        "name": "Load Power"
+      },
+      "load_daily_consumption": {
+        "name": "Load Daily Consumption"
+      },
+      "last_update": {
+        "name": "Last Update"
+      },
+      "forecast_today": {
+        "name": "Solar Forecast Today"
+      },
+      "forecast_tomorrow": {
+        "name": "Solar Forecast Tomorrow"
+      },
+      "forecast_current_hour": {
+        "name": "Solar Forecast Current Hour"
+      }
+    },
+    "binary_sensor": {
+      "inverter_online": {
+        "name": "Inverter Online"
+      }
+    },
+    "number": {
+      "battery_soc_min": {
+        "name": "Battery Minimum SOC"
+      },
+      "battery_soc_max": {
+        "name": "Battery Maximum SOC"
+      },
+      "battery_charge_current_max": {
+        "name": "Battery Max Charge Current"
+      },
+      "battery_discharge_current_max": {
+        "name": "Battery Max Discharge Current"
+      },
+      "grid_export_limit": {
+        "name": "Grid Export Limit"
+      },
+      "peak_shaving_threshold": {
+        "name": "Peak Shaving Threshold"
+      }
+    },
+    "select": {
+      "work_mode": {
+        "name": "Work Mode"
+      },
+      "energy_pattern": {
+        "name": "Energy Pattern"
+      }
+    },
+    "switch": {
+      "solar_sell": {
+        "name": "Solar Sell"
+      },
+      "peak_shaving": {
+        "name": "Peak Shaving"
+      },
+      "tou_schedule": {
+        "name": "Time-of-Use Schedule"
+      },
+      "tariff_automation": {
+        "name": "Tariff Automation"
+      },
+      "smart_load": {
+        "name": "Smart Load"
+      }
+    },
+    "event": {
+      "inverter_alert": {
+        "name": "Inverter Alert"
+      }
+    }
+  }
+}

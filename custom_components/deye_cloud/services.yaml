@@ -1,0 +1,67 @@
+send_modbus_command:
+  name: Send Modbus Command
+  description: Send a custom Modbus command to a Deye inverter via the Cloud API.
+  fields:
+    device_sn:
+      name: Device Serial Number
+      description: The serial number of the target inverter.
+      required: true
+      selector:
+        text:
+    register:
+      name: Register Address
+      description: The Modbus register address (integer).
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 65535
+          mode: box
+    value:
+      name: Register Value
+      description: The value to write to the register (integer).
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 65535
+          mode: box
+
+read_control_strategy:
+  name: Read Control Strategy
+  description: Read the current dynamic control strategy from a Deye inverter.
+  fields:
+    device_sn:
+      name: Device Serial Number
+      description: The serial number of the target inverter.
+      required: true
+      selector:
+        text:
+
+write_control_strategy:
+  name: Write Control Strategy
+  description: Write a dynamic control strategy to a Deye inverter.
+  fields:
+    device_sn:
+      name: Device Serial Number
+      description: The serial number of the target inverter.
+      required: true
+      selector:
+        text:
+    strategy:
+      name: Strategy Parameters
+      description: The strategy parameters to apply.
+      required: true
+      selector:
+        object:
+
+force_refresh:
+  name: Force Refresh
+  description: Force an immediate data refresh for a Deye inverter outside the normal polling cycle.
+  fields:
+    device_sn:
+      name: Device Serial Number
+      description: The serial number of the target inverter.
+      required: true
+      selector:
+        text:
