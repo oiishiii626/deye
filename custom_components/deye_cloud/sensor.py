@@ -34,19 +34,14 @@ from .models import Device, DeviceData
 
 _LOGGER = logging.getLogger(__name__)
 
+from dataclasses import dataclass
 
+
+@dataclass(frozen=True)
 class DeyeSensorEntityDescription(SensorEntityDescription):
     """Describes a Deye sensor entity with a value extraction function."""
 
-    def __init__(self, *, value_fn: str, **kwargs: Any) -> None:
-        """Initialize the description.
-
-        Args:
-            value_fn: Attribute name on DeviceData to read the value from.
-            **kwargs: Passed through to SensorEntityDescription.
-        """
-        super().__init__(**kwargs)
-        self.value_fn = value_fn
+    value_fn: str = ""
 
 
 # Energy accumulation sensors for Energy Dashboard compatibility.
