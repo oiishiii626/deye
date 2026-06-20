@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -34,10 +35,8 @@ from .models import Device, DeviceData
 
 _LOGGER = logging.getLogger(__name__)
 
-from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class DeyeSensorEntityDescription(SensorEntityDescription):
     """Describes a Deye sensor entity with a value extraction function."""
 
