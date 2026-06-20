@@ -119,11 +119,11 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                     await api.authenticate()
 
-                    # Discover stations and devices
+                    # Discover stations
                     self._stations = await api.get_station_list()
-                    for station in self._stations:
-                        devices = await api.get_device_list(station.station_id)
-                        self._devices[station.station_id] = devices
+                    # Note: device/list endpoint may not be available for all accounts
+                    # Skip device discovery for now - user will input device SNs manually
+                    # or we discover them from station data later
 
             except DeyeAuthError:
                 errors["base"] = "invalid_auth"
@@ -138,13 +138,8 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
                 errors["base"] = "unknown"
             else:
-                # Check if any devices were found
-                all_devices = [
-                    device
-                    for devices in self._devices.values()
-                    for device in devices
-                ]
-                if not self._stations and not all_devices:
+                # Check if we found stations
+                if not self._stations:
                     return self.async_abort(reason="no_devices")
 
                 # Proceed to device selection step
@@ -163,7 +158,12 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            selected_inverters = user_input.get(CONF_INVERTERS, [])
+            # Parse device serial numbers from comma-separated input
+            inverter_input = user_input.get(CONF_INVERTERS, "")
+            selected_inverters = [
+                sn.strip() for sn in inverter_input.split(",") if sn.strip()
+            ] if isinstance(inverter_input, str) else list(inverter_input)
+
             selected_stations = user_input.get(CONF_STATIONS, [])
 
             if not selected_inverters and not selected_stations:
@@ -183,38 +183,23 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                     },
                 )
 
-        # Build multi-select options for inverters
-        inverter_options: dict[str, str] = {}
-        for station in self._stations:
-            devices = self._devices.get(station.station_id, [])
-            for device in devices:
-                label = f"{device.model_name} ({device.device_sn}) - {station.name}"
-                inverter_options[device.device_sn] = label
-
         # Build multi-select options for stations
         station_options: dict[str, str] = {}
         for station in self._stations:
             label = f"{station.name} ({station.rated_capacity_kwp} kWp)"
             station_options[station.station_id] = label
 
-        # Default to all inverters and stations selected
-        default_inverters = list(inverter_options.keys())
-        default_stations = list(station_options.keys())
-
+        # Schema: stations as multi-select, inverters as comma-separated text
         select_schema = vol.Schema(
             {
                 vol.Optional(
-                    CONF_INVERTERS, default=default_inverters
-                ): vol.All(
-                    vol.Coerce(list),
-                    [vol.In(inverter_options)],
-                ),
-                vol.Optional(
-                    CONF_STATIONS, default=default_stations
+                    CONF_STATIONS,
+                    default=list(station_options.keys()),
                 ): vol.All(
                     vol.Coerce(list),
                     [vol.In(station_options)],
-                ),
+                ) if station_options else vol.Optional(CONF_STATIONS, default=[]),
+                vol.Required(CONF_INVERTERS, default=""): str,
             }
         )
 
@@ -222,6 +207,9 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="select_devices",
             data_schema=select_schema,
             errors=errors,
+            description_placeholders={
+                "stations_found": str(len(self._stations)),
+            },
         )
 
 

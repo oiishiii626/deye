@@ -21,9 +21,9 @@
       },
       "select_devices": {
         "title": "Select Devices",
-        "description": "Select the inverters and stations you want to monitor.",
+        "description": "Found {stations_found} station(s). Enter your inverter serial number(s) below (comma-separated if multiple). You can find the serial number on your inverter or in the Deye Cloud app.",
         "data": {
-          "inverters": "Inverters",
+          "inverters": "Inverter Serial Numbers (comma-separated)",
           "stations": "Stations"
         }
       }

@@ -119,18 +119,26 @@ class DeyeCloudAPI:
                         raise DeyeAuthError(
                             f"Authentication failed: {data.get('msg', 'invalid credentials')}"
                         )
-                    raise DeyeApiError(
-                        f"Authentication failed: {data.get('msg', 'unknown error')}",
-                        error_code=str(data.get("code", "")),
-                    )
+                    # Deye API uses "1000000" for success
+                    if data.get("success") is not True and data.get("code") != "1000000":
+                        raise DeyeApiError(
+                            f"Authentication failed: {data.get('msg', 'unknown error')}",
+                            error_code=str(data.get("code", "")),
+                        )
 
                 # Extract token data from response
-                token_data = data.get("data", data)
-                access_token = token_data.get("accessToken") or token_data.get(
-                    "access_token"
+                # Deye API returns accessToken at root level
+                token_data = data.get("data", data) if isinstance(data.get("data"), dict) else data
+                access_token = (
+                    token_data.get("accessToken")
+                    or token_data.get("access_token")
+                    or data.get("accessToken")
                 )
-                expires_in = token_data.get("expiresIn") or token_data.get(
-                    "expires_in", 7200
+                expires_in = (
+                    token_data.get("expiresIn")
+                    or token_data.get("expires_in")
+                    or data.get("expiresIn")
+                    or 7200
                 )
 
                 if not access_token:
@@ -300,8 +308,10 @@ class DeyeCloudAPI:
                     )
 
                 # Check API-level success code
+                # Deye API uses "1000000" for success, or success=true
                 api_code = data.get("code")
-                if api_code is not None and api_code not in (0, "0"):
+                is_success = data.get("success") is True or api_code in (0, "0", "1000000")
+                if not is_success and api_code is not None:
                     # Handle API-level auth errors
                     if api_code in ("401", 401, "UNAUTHORIZED"):
                         if retry_on_401:
@@ -608,21 +618,23 @@ class DeyeCloudAPI:
         data = await self._request("POST", "/v1.0/station/list", payload={})
         stations: list[Station] = []
 
-        station_list = data.get("data", {})
-        # Handle both list and dict-with-list response formats
-        if isinstance(station_list, dict):
-            station_list = station_list.get("stationList", []) or []
-        elif not isinstance(station_list, list):
-            station_list = []
+        # Deye API returns stationList at root level or under data
+        station_list = data.get("stationList") or []
+        if not station_list:
+            nested = data.get("data", {})
+            if isinstance(nested, dict):
+                station_list = nested.get("stationList", []) or []
+            elif isinstance(nested, list):
+                station_list = nested
 
         for item in station_list:
             station = Station(
                 station_id=str(item.get("id", item.get("stationId", ""))),
                 name=item.get("name", item.get("stationName", "")),
-                latitude=float(item.get("latitude", item.get("lat", 0.0))),
-                longitude=float(item.get("longitude", item.get("lng", 0.0))),
+                latitude=float(item.get("locationLat", item.get("latitude", item.get("lat", 0.0)))),
+                longitude=float(item.get("locationLng", item.get("longitude", item.get("lng", 0.0)))),
                 rated_capacity_kwp=float(
-                    item.get("ratedCapacity", item.get("installedCapacity", 0.0))
+                    item.get("installedCapacity", item.get("ratedCapacity", 0.0))
                 ),
             )
             stations.append(station)
