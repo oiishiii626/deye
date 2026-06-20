@@ -41,6 +41,8 @@ class DeyeCloudAPI:
         session: aiohttp.ClientSession,
         app_id: str,
         app_secret: str,
+        email: str = "",
+        password_hash: str = "",
     ) -> None:
         """Initialize the Deye Cloud API client.
 
@@ -48,10 +50,14 @@ class DeyeCloudAPI:
             session: An aiohttp ClientSession for making HTTP requests.
             app_id: The Deye Cloud application ID.
             app_secret: The Deye Cloud application secret.
+            email: The user's Deye Cloud email address.
+            password_hash: SHA-256 hash of the user's Deye Cloud password.
         """
         self._session = session
         self._app_id = app_id
         self._app_secret = app_secret
+        self._email = email
+        self._password_hash = password_hash
         self._access_token: str | None = None
         self._token_expiry: float = 0.0  # Unix timestamp when token expires
 
@@ -68,7 +74,8 @@ class DeyeCloudAPI:
     async def authenticate(self) -> str:
         """Authenticate with the Deye Cloud API and obtain an access token.
 
-        POST /v1.0/account/token with app_id and app_secret.
+        POST /v1.0/account/token?appId={appId}
+        Body: {"appSecret": "...", "email": "...", "password": "<sha256>"}
 
         Returns:
             The access token string.
@@ -78,10 +85,11 @@ class DeyeCloudAPI:
             DeyeTimeoutError: If the request exceeds the 10s timeout.
             DeyeConnectionError: If unable to connect to the API.
         """
-        url = f"{BASE_URL}/v1.0/account/token"
+        url = f"{BASE_URL}/v1.0/account/token?appId={self._app_id}"
         payload = {
-            "appId": self._app_id,
             "appSecret": self._app_secret,
+            "email": self._email,
+            "password": self._password_hash,
         }
 
         try:
@@ -237,7 +245,7 @@ class DeyeCloudAPI:
 
         url = f"{BASE_URL}{endpoint}"
         headers = {
-            "Authorization": f"Bearer {self._access_token}",
+            "Authorization": f"bearer {self._access_token}",
             "Content-Type": "application/json",
         }
 

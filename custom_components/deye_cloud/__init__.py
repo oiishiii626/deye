@@ -47,6 +47,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # 1. Get credentials and config from entry data
     app_id: str = entry.data[CONF_APP_ID]
     app_secret: str = entry.data[CONF_APP_SECRET]
+    email: str = entry.data.get("email", "")
+    password_hash: str = entry.data.get("password_hash", "")
     scan_interval: int = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     inverters: list[str] = entry.data.get(CONF_INVERTERS, [])
     stations: list[str] = entry.data.get(CONF_STATIONS, [])
@@ -55,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     session = async_get_clientsession(hass)
 
     # 3. Create DeyeCloudAPI instance
-    api = DeyeCloudAPI(session, app_id, app_secret)
+    api = DeyeCloudAPI(session, app_id, app_secret, email=email, password_hash=password_hash)
 
     # 4. Authenticate (validate credentials still work)
     await api.authenticate()

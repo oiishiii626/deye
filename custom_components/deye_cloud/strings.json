@@ -3,15 +3,19 @@
     "step": {
       "user": {
         "title": "Deye Cloud Credentials",
-        "description": "Enter your Deye Cloud developer API credentials.",
+        "description": "Enter your Deye Cloud developer API credentials and account details.",
         "data": {
           "app_id": "App ID",
           "app_secret": "App Secret",
+          "email": "Email",
+          "password": "Password",
           "scan_interval": "Polling interval (seconds)"
         },
         "data_description": {
           "app_id": "Your Deye Cloud developer App ID",
           "app_secret": "Your Deye Cloud developer App Secret",
+          "email": "Your Deye Cloud account email address",
+          "password": "Your Deye Cloud account password",
           "scan_interval": "How often to poll for new data (30-600 seconds)"
         }
       },

@@ -37,6 +37,8 @@ _LOGGER = logging.getLogger(__name__)
 
 CONF_APP_ID = "app_id"
 CONF_APP_SECRET = "app_secret"
+CONF_EMAIL = "email"
+CONF_PASSWORD = "password"
 CONF_INVERTERS = "inverters"
 CONF_STATIONS = "stations"
 CONF_PANEL_TILT = "panel_tilt"
@@ -48,6 +50,8 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_APP_ID): str,
         vol.Required(CONF_APP_SECRET): str,
+        vol.Required(CONF_EMAIL): str,
+        vol.Required(CONF_PASSWORD): str,
         vol.Required(
             CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
         ): vol.All(
@@ -67,6 +71,8 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._app_id: str = ""
         self._app_secret: str = ""
+        self._email: str = ""
+        self._password_hash: str = ""
         self._scan_interval: int = DEFAULT_SCAN_INTERVAL
         self._stations: list[Station] = []
         self._devices: dict[str, list[Device]] = {}  # station_id -> devices
@@ -89,6 +95,14 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             self._app_secret = user_input[CONF_APP_SECRET]
             self._scan_interval = user_input[CONF_SCAN_INTERVAL]
 
+            # Hash the password with SHA-256 as required by Deye API
+            import hashlib
+            password_hash = hashlib.sha256(
+                user_input[CONF_PASSWORD].encode("utf-8")
+            ).hexdigest()
+            self._email = user_input[CONF_EMAIL]
+            self._password_hash = password_hash
+
             # Check for duplicate config entries
             await self.async_set_unique_id(self._app_id)
             self._abort_if_unique_id_configured()
@@ -96,7 +110,13 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             # Validate credentials against the API
             try:
                 async with aiohttp.ClientSession() as session:
-                    api = DeyeCloudAPI(session, self._app_id, self._app_secret)
+                    api = DeyeCloudAPI(
+                        session,
+                        self._app_id,
+                        self._app_secret,
+                        email=user_input[CONF_EMAIL],
+                        password_hash=password_hash,
+                    )
                     await api.authenticate()
 
                     # Discover stations and devices
@@ -155,6 +175,8 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                     data={
                         CONF_APP_ID: self._app_id,
                         CONF_APP_SECRET: self._app_secret,
+                        "email": self._email,
+                        "password_hash": self._password_hash,
                         CONF_SCAN_INTERVAL: self._scan_interval,
                         CONF_INVERTERS: selected_inverters,
                         CONF_STATIONS: selected_stations,
