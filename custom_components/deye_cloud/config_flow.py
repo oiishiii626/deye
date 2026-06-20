@@ -15,6 +15,7 @@ from homeassistant.config_entries import (
     OptionsFlowWithConfigEntry,
 )
 from homeassistant.const import CONF_SCAN_INTERVAL
+from homeassistant.helpers import config_validation as cv
 
 from .api import DeyeCloudAPI
 from .const import (
@@ -202,10 +203,7 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_STATIONS,
                     default=list(station_options.keys()),
-                ): vol.All(
-                    vol.Coerce(list),
-                    [vol.In(station_options)],
-                ) if station_options else vol.Optional(CONF_STATIONS, default=[]),
+                ): cv.multi_select(station_options),
                 vol.Required(CONF_INVERTERS, default=""): str,
             }
         )
