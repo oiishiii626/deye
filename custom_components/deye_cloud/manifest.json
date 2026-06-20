@@ -2,11 +2,11 @@
   "domain": "deye_cloud",
   "name": "Deye Cloud",
   "version": "0.1.0",
-  "documentation": "https://github.com/your-username/ha-deye-cloud",
-  "issue_tracker": "https://github.com/your-username/ha-deye-cloud/issues",
+  "documentation": "https://github.com/aldwinbalila/deye",
+  "issue_tracker": "https://github.com/aldwinbalila/deye/issues",
   "dependencies": [],
-  "requirements": ["aiohttp>=3.8.0"],
+  "requirements": [],
   "iot_class": "cloud_polling",
-  "codeowners": ["@your-username"],
+  "codeowners": ["@aldwinbalila"],
   "config_flow": true
 }
