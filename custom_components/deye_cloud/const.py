@@ -13,11 +13,6 @@ MAX_SCAN_INTERVAL: Final = 3600
 PLATFORMS: Final = [
     "sensor",
     "binary_sensor",
-    "number",
-    "select",
-    "switch",
-    "time",
-    "event",
 ]
 
 # Retry configuration - Coordinator

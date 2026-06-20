@@ -49,6 +49,9 @@ SENSOR_DEFINITIONS: list[tuple[str, str, SensorDeviceClass | None, SensorStateCl
     # Battery sensors
     ("battery_soc", "Battery SOC", SensorDeviceClass.BATTERY, SensorStateClass.MEASUREMENT, PERCENTAGE, "battery_soc_pct"),
     ("battery_power", "Battery Power", SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT, UnitOfPower.WATT, "battery_power_w"),
+    ("battery_voltage", "Battery Voltage", SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT, UnitOfElectricPotential.VOLT, "battery_voltage_v"),
+    ("battery_current", "Battery Current", SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT, UnitOfElectricCurrent.AMPERE, "battery_current_a"),
+    ("battery_temperature", "Battery Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS, "battery_temperature_c"),
     # Grid sensors
     ("grid_import_power", "Grid Import Power", SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT, UnitOfPower.WATT, "grid_import_power_w"),
     ("grid_export_power", "Grid Export Power", SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT, UnitOfPower.WATT, "grid_export_power_w"),
