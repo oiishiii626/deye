@@ -369,7 +369,7 @@ class DeyeCloudAPI:
     # ─── Device Data Endpoints ────────────────────────────────────────────
 
     async def get_device_latest(
-        self, device_sn: str, measure_points: list[str]
+        self, device_sn: str, measure_points: list[str] | None = None
     ) -> dict:
         """Get the latest measurement data for a device.
 
@@ -377,7 +377,8 @@ class DeyeCloudAPI:
 
         Args:
             device_sn: The device serial number.
-            measure_points: List of measurement point keys to retrieve.
+            measure_points: Unused (kept for API compatibility). The Deye API
+                returns all available data points for the device.
 
         Returns:
             The response data dictionary containing measurement values.
@@ -387,11 +388,14 @@ class DeyeCloudAPI:
             DeyeAuthError: If authentication fails.
         """
         payload = {
-            "deviceSn": device_sn,
-            "measurePoints": measure_points,
+            "deviceList": [device_sn],
         }
         response = await self._request("POST", "/v1.0/device/latest", payload=payload)
-        return response.get("data", {})
+        # Response contains deviceDataList with data for each device
+        device_data_list = response.get("deviceDataList", [])
+        if device_data_list:
+            return device_data_list[0]
+        return {}
 
     # ─── Device Control Endpoints ─────────────────────────────────────────
 

@@ -298,170 +298,132 @@ class DeyeDeviceCoordinator(DataUpdateCoordinator[DeviceData]):
     def _parse_device_data(self, raw: dict[str, Any]) -> DeviceData:
         """Parse raw API response into a DeviceData model.
 
+        The Deye API returns data as a flat key-value list in 'dataList'.
+        We first convert it to a lookup dict, then map known keys to our model.
+
         Args:
-            raw: The raw data dictionary from the API response.
+            raw: The raw data dictionary from the API response (one device entry).
 
         Returns:
             A populated DeviceData instance.
         """
-        # Parse MPPT channel data
+        # Convert flat dataList [{key, value, unit}, ...] into a lookup dict
+        data_lookup: dict[str, str] = {}
+        for item in raw.get("dataList", []):
+            key = item.get("key", "")
+            value = item.get("value", "")
+            if key:
+                data_lookup[key] = value
+
+        # Device state: 1 = online
+        is_online = raw.get("deviceState", 0) == 1
+        collection_time = raw.get("collectionTime", 0)
+
+        # Helper to get float from data_lookup
+        def _val(key: str, default: float = 0.0) -> float:
+            v = data_lookup.get(key)
+            if v is None:
+                return default
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                return default
+
+        def _opt_val(key: str) -> float | None:
+            v = data_lookup.get(key)
+            if v is None:
+                return None
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                return None
+
+        # Parse MPPT channels from known keys (DCPowerPV1, DCVoltagePV1, DCCurrentPV1, etc.)
         pv_channels: list[MPPTChannelData] = []
-        raw_channels = raw.get("pv_channels") or raw.get("pvChannels") or []
-        for ch in raw_channels:
-            pv_channels.append(
-                MPPTChannelData(
-                    channel=int(ch.get("channel", 0)),
-                    power_w=float(ch.get("power", ch.get("powerW", 0.0))),
-                    voltage_v=float(ch.get("voltage", ch.get("voltageV", 0.0))),
-                    current_a=float(ch.get("current", ch.get("currentA", 0.0))),
+        for ch in range(1, 5):  # Support up to 4 MPPT channels
+            power_key = f"DCPowerPV{ch}"
+            voltage_key = f"DCVoltagePV{ch}"
+            current_key = f"DCCurrentPV{ch}"
+            if power_key in data_lookup or voltage_key in data_lookup:
+                pv_channels.append(
+                    MPPTChannelData(
+                        channel=ch,
+                        power_w=_val(power_key),
+                        voltage_v=_val(voltage_key),
+                        current_a=_val(current_key),
+                    )
                 )
-            )
 
-        # Parse grid phase data
+        # Parse grid phases (ACVoltageRUA, ACCurrentRUA, etc.)
         grid_phases: list[PhaseData] = []
-        raw_phases = raw.get("grid_phases") or raw.get("gridPhases") or []
-        for ph in raw_phases:
-            grid_phases.append(
-                PhaseData(
-                    phase=int(ph.get("phase", 0)),
-                    voltage_v=float(ph.get("voltage", ph.get("voltageV", 0.0))),
-                    current_a=float(ph.get("current", ph.get("currentA", 0.0))),
-                    power_w=float(ph.get("power", ph.get("powerW", 0.0))),
-                    frequency_hz=float(
-                        ph.get("frequency", ph.get("frequencyHz", 0.0))
-                    ),
+        phase_labels = [("RUA", 1), ("SVB", 2), ("TWC", 3)]
+        for label, phase_num in phase_labels:
+            v_key = f"ACVoltage{label}"
+            c_key = f"ACCurrent{label}"
+            if v_key in data_lookup:
+                grid_phases.append(
+                    PhaseData(
+                        phase=phase_num,
+                        voltage_v=_val(v_key),
+                        current_a=_val(c_key),
+                        power_w=_val(f"InverterOutputPowerL{phase_num}L{phase_num}", 0.0),
+                        frequency_hz=_val(f"ACOutputFrequency{label[0]}", _val("GridFrequency")),
+                    )
                 )
-            )
 
-        # Parse active alerts
-        active_alerts: list[AlertData] = []
-        raw_alerts = raw.get("active_alerts") or raw.get("activeAlerts") or []
-        for alert in raw_alerts:
-            timestamp_raw = alert.get("timestamp", "")
-            try:
-                timestamp = datetime.fromisoformat(str(timestamp_raw))
-            except (ValueError, TypeError):
-                timestamp = datetime.now()
-
-            active_alerts.append(
-                AlertData(
-                    alert_type=str(alert.get("alertType", alert.get("type", ""))),
-                    severity=str(alert.get("severity", "info")),
-                    timestamp=timestamp,
-                    message=str(alert.get("message", "")),
-                    is_active=bool(alert.get("isActive", True)),
-                )
-            )
-
-        # Parse smart load states
-        raw_smart_loads = raw.get("smart_load_states") or raw.get("smartLoadStates") or []
-        smart_load_states: list[bool] = [bool(s) for s in raw_smart_loads]
-
-        # Parse TOU slots
-        tou_slots: list[TOUSlotData] = []
-        raw_tou = raw.get("tou_slots") or raw.get("touSlots") or []
-        for slot in raw_tou:
-            try:
-                mode = TOUSlotMode(str(slot.get("mode", "disabled")))
-            except ValueError:
-                mode = TOUSlotMode.DISABLED
-            tou_slots.append(
-                TOUSlotData(
-                    slot_index=int(slot.get("slotIndex", slot.get("slot_index", 0))),
-                    start_time=str(slot.get("startTime", slot.get("start_time", "00:00"))),
-                    end_time=str(slot.get("endTime", slot.get("end_time", "00:00"))),
-                    mode=mode,
-                    power_limit_w=int(slot.get("powerLimitW", slot.get("power_limit_w", 0))),
-                )
-            )
-
-        # Parse last update time
-        last_update_raw = raw.get("last_update_time") or raw.get("lastUpdateTime")
-        if last_update_raw:
-            try:
-                last_update_time = datetime.fromisoformat(str(last_update_raw))
-            except (ValueError, TypeError):
-                last_update_time = datetime.now()
+        # Parse last update time from collectionTime (unix timestamp)
+        if collection_time:
+            last_update_time = datetime.fromtimestamp(collection_time)
         else:
             last_update_time = datetime.now()
 
-        # Parse work mode
-        work_mode_raw = raw.get("work_mode") or raw.get("workMode")
-        try:
-            work_mode = WorkMode(int(work_mode_raw)) if work_mode_raw is not None else WorkMode.SELF_CONSUMPTION
-        except (ValueError, TypeError):
-            work_mode = WorkMode.SELF_CONSUMPTION
-
-        # Parse energy pattern
-        energy_pattern_raw = raw.get("energy_pattern") or raw.get("energyPattern")
-        try:
-            energy_pattern = EnergyPattern(int(energy_pattern_raw)) if energy_pattern_raw is not None else EnergyPattern.BATTERY_FIRST
-        except (ValueError, TypeError):
-            energy_pattern = EnergyPattern.BATTERY_FIRST
-
         return DeviceData(
             # PV
-            pv_power_total_w=_float(raw, "pv_power_total", "pvPowerTotal"),
-            pv_daily_yield_kwh=_float(raw, "pv_daily_yield", "pvDailyYield"),
-            pv_total_yield_kwh=_float(raw, "pv_total_yield", "pvTotalYield"),
+            pv_power_total_w=_val("TotalDCInputPower"),
+            pv_daily_yield_kwh=_val("DailyActiveProduction"),
+            pv_total_yield_kwh=_val("TotalActiveProduction"),
             pv_channels=pv_channels,
             # Battery
-            battery_soc_pct=_optional_float(raw, "battery_soc", "batterySoc"),
-            battery_power_w=_optional_float(raw, "battery_power", "batteryPower"),
-            battery_voltage_v=_optional_float(raw, "battery_voltage", "batteryVoltage"),
-            battery_current_a=_optional_float(raw, "battery_current", "batteryCurrent"),
-            battery_temperature_c=_optional_float(raw, "battery_temperature", "batteryTemperature"),
-            battery_daily_charge_kwh=_optional_float(raw, "battery_daily_charge", "batteryDailyCharge"),
-            battery_daily_discharge_kwh=_optional_float(raw, "battery_daily_discharge", "batteryDailyDischarge"),
-            battery_total_charge_kwh=_optional_float(raw, "battery_total_charge", "batteryTotalCharge"),
-            battery_total_discharge_kwh=_optional_float(raw, "battery_total_discharge", "batteryTotalDischarge"),
+            battery_soc_pct=_opt_val("BatterySOC"),
+            battery_power_w=_opt_val("BatteryPower"),
+            battery_voltage_v=_opt_val("BatteryVoltage"),
+            battery_current_a=_opt_val("BatteryCurrent"),
+            battery_temperature_c=_opt_val("BatteryTemperature"),
+            battery_daily_charge_kwh=_opt_val("DailyBatteryCharge"),
+            battery_daily_discharge_kwh=_opt_val("DailyBatteryDischarge"),
+            battery_total_charge_kwh=_opt_val("CumulativeBatteryCharge"),
+            battery_total_discharge_kwh=_opt_val("CumulativeBatteryDischarge"),
             # Grid
-            grid_import_power_w=_float(raw, "grid_import_power", "gridImportPower"),
-            grid_export_power_w=_float(raw, "grid_export_power", "gridExportPower"),
-            grid_daily_import_kwh=_float(raw, "grid_daily_import", "gridDailyImport"),
-            grid_daily_export_kwh=_float(raw, "grid_daily_export", "gridDailyExport"),
-            grid_total_import_kwh=_float(raw, "grid_total_import", "gridTotalImport"),
-            grid_total_export_kwh=_float(raw, "grid_total_export", "gridTotalExport"),
-            grid_frequency_hz=_float(raw, "grid_frequency", "gridFrequency"),
+            grid_import_power_w=_val("CumulativeEnergyPurchased", 0.0) if not data_lookup.get("TotalGridPower") else max(0.0, _val("TotalGridPower")),
+            grid_export_power_w=max(0.0, -_val("TotalGridPower")) if _val("TotalGridPower") < 0 else 0.0,
+            grid_daily_import_kwh=_val("DailyEnergyPurchased"),
+            grid_daily_export_kwh=_val("DailyGridFeedIn"),
+            grid_total_import_kwh=_val("CumulativeEnergyPurchased"),
+            grid_total_export_kwh=_val("CumulativeGridFeedIn"),
+            grid_frequency_hz=_val("GridFrequency", _val("ACOutputFrequencyR")),
             grid_phases=grid_phases,
             # Load
-            load_power_w=_float(raw, "load_power", "loadPower"),
-            load_daily_consumption_kwh=_float(raw, "load_daily_consumption", "loadDailyConsumption"),
-            load_total_consumption_kwh=_float(raw, "load_total_consumption", "loadTotalConsumption"),
+            load_power_w=_val("TotalConsumptionPower", _val("InverterOutputPowerL1L2")),
+            load_daily_consumption_kwh=_val("DailyConsumption"),
+            load_total_consumption_kwh=_val("CumulativeConsumption"),
             # Status
-            is_online=bool(raw.get("is_online", raw.get("isOnline", True))),
+            is_online=is_online,
             last_update_time=last_update_time,
-            active_alerts=active_alerts,
-            # Configuration readback
-            work_mode=work_mode,
-            energy_pattern=energy_pattern,
-            battery_soc_min_setting=int(
-                raw.get("battery_soc_min", raw.get("batterySocMin", 10))
-            ),
-            battery_soc_max_setting=int(
-                raw.get("battery_soc_max", raw.get("batterySocMax", 100))
-            ),
-            battery_charge_current_setting=float(
-                raw.get("battery_charge_current_max", raw.get("batteryChargeCurrentMax", 0.0))
-            ),
-            battery_discharge_current_setting=float(
-                raw.get("battery_discharge_current_max", raw.get("batteryDischargeCurrentMax", 0.0))
-            ),
-            grid_export_limit_w=int(
-                raw.get("grid_export_limit", raw.get("gridExportLimit", 0))
-            ),
-            solar_sell_enabled=bool(
-                raw.get("solar_sell_enabled", raw.get("solarSellEnabled", False))
-            ),
-            peak_shaving_enabled=bool(
-                raw.get("peak_shaving_enabled", raw.get("peakShavingEnabled", False))
-            ),
-            peak_shaving_threshold_w=int(
-                raw.get("peak_shaving_threshold", raw.get("peakShavingThreshold", 0))
-            ),
-            smart_load_states=smart_load_states,
-            tou_enabled=bool(raw.get("tou_enabled", raw.get("touEnabled", False))),
-            tou_slots=tou_slots,
+            active_alerts=[],
+            # Configuration (may not be available from device/latest)
+            work_mode=WorkMode.SELF_CONSUMPTION,
+            energy_pattern=EnergyPattern.BATTERY_FIRST,
+            battery_soc_min_setting=10,
+            battery_soc_max_setting=100,
+            battery_charge_current_setting=0.0,
+            battery_discharge_current_setting=0.0,
+            grid_export_limit_w=0,
+            solar_sell_enabled=False,
+            peak_shaving_enabled=False,
+            peak_shaving_threshold_w=0,
+            smart_load_states=[],
+            tou_enabled=False,
+            tou_slots=[],
         )
 
 
