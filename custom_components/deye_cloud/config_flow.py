@@ -29,7 +29,7 @@ from .const import (
     MIN_SCAN_INTERVAL,
     MIN_SYSTEM_EFFICIENCY,
 )
-from .exceptions import DeyeAuthError, DeyeConnectionError
+from .exceptions import DeyeApiError, DeyeAuthError, DeyeConnectionError
 from .helpers import check_time_periods_overlap
 from .models import Device, Station
 
@@ -129,6 +129,13 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except (DeyeConnectionError, aiohttp.ClientError) as err:
                 _LOGGER.error("Connection error during config flow: %s", err)
+                errors["base"] = "cannot_connect"
+            except DeyeApiError as err:
+                _LOGGER.error(
+                    "API error during config flow: %s (code=%s)",
+                    err,
+                    getattr(err, "error_code", "unknown"),
+                )
                 errors["base"] = "cannot_connect"
             except Exception as err:
                 _LOGGER.exception(
